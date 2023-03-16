@@ -1,5 +1,22 @@
 @tailwind base;
 
+@font-face {
+  font-family: "pixel";
+  src: url("../../public/fonts/pixel-font-7.ttf");
+}
+@font-face {
+  font-family: "workSans regular";
+  src: url("../../public/fonts/WorkSansFamily/WorkSans-Regular.ttf");
+}
+@font-face {
+  font-family: "workSans medium";
+  src: url("../../public/fonts/WorkSansFamily/WorkSans-Medium.ttf");
+}
+
+@font-face {
+  font-family: "workSans semibold";
+  src: url("../../public/fonts/WorkSansFamily/WorkSans-SemiBold.ttf");
+}
 a {
   @apply text-blue-700;
 }

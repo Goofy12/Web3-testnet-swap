@@ -14,6 +14,11 @@ module.exports = {
       '5xl': '3rem',
       '6xl': '4rem',
     },
+    fontFamily: {
+      pixel: ['pixel', 'monospace'],
+      regular: ['workSans regular', 'monospace'],
+      medium: ['workSans medium', 'monospace'],
+    },
     extend: {
       colors: {
         gray: {
@@ -38,6 +43,15 @@ module.exports = {
           800: '#2c5282',
           900: '#2a4365',
         },
+        primary: {
+          100: '#E8FF89',
+          200: '#BEE719',
+          300: '#8AA814',
+        },
+      },
+      backgroundImage: {
+        'default-pattern': "url('/VolumeBg.png')",
+        'footer-texture': "url('/img/footer-texture.png')",
       },
     },
   },
