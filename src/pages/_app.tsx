@@ -1,9 +1,31 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import '../styles/global.css';
 
+import { getDefaultProvider } from 'ethers';
 import type { AppProps } from 'next/app';
+import { useEffect, useState } from 'react';
+import { createClient, WagmiConfig } from 'wagmi';
 
-const MyApp = ({ Component, pageProps }: AppProps) => (
-  <Component {...pageProps} />
-);
+// Configure wagmi client
+const wagmiClient = createClient({
+  autoConnect: true,
+  provider: getDefaultProvider(),
+});
 
-export default MyApp;
+export default function App({ Component, pageProps }: AppProps) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  return (
+    <>
+      {ready ? (
+        <WagmiConfig client={wagmiClient}>
+          <Component {...pageProps} />
+        </WagmiConfig>
+      ) : null}
+    </>
+  );
+}
