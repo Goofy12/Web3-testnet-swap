@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 
 import { AppConfig } from '@/utils/AppConfig';
 
+import AccountNav from '../components/AccountNav';
+
 type IMainProps = {
   meta: ReactNode;
   children: ReactNode;
@@ -25,12 +27,7 @@ const Main = (props: IMainProps) => (
               </Link>
             </li>
             <li className="mr-6">
-              <Link
-                href="/blog/"
-                className="border-none text-gray-300 hover:text-gray-500"
-              >
-                Connect wallet
-              </Link>
+              <AccountNav />
             </li>
           </ul>
         </nav>
