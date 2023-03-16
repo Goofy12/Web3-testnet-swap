@@ -21,7 +21,7 @@ const Main = (props: IMainProps) => (
             <li className="mr-6">
               <Link
                 href="/"
-                className="border-none font-pixel text-primary-200 hover:text-primary-300"
+                className="border-none font-pixel text-4xl font-bold text-primary-200 hover:text-primary-300"
               >
                 Home
               </Link>
@@ -35,7 +35,7 @@ const Main = (props: IMainProps) => (
 
       <main className="content py-5 text-xl">{props.children}</main>
 
-      <footer className="border-t border-gray-300 py-8 text-center text-sm">
+      <footer className="border-t border-gray-300 py-8 pt-36 text-center text-sm">
         © Copyright {new Date().getFullYear()} {AppConfig.title}. Made with{' '}
         <a href="https://creativedesignsguru.com">CreativeDesignsGuru</a>.
         {/*
