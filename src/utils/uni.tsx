@@ -5,7 +5,7 @@ import * as v3sdk from '@uniswap/v3-sdk';
 // import type { ethers.p } from 'ethers';
 import { ethers } from 'ethers';
 
-import { fromReadableAmount, toReadableAmount } from './conversions';
+import { fromReadableAmount } from './conversions';
 
 const { Token } = sdk;
 
@@ -57,37 +57,54 @@ async function getPoolConstants(provider: ethers.providers): Promise<{
   }
 }
 
-export async function getSwapQuote(
+export function getSwapQuote(
+  fromEth: boolean,
   provider: ethers.providers,
   amount: number
 ): Promise<string> {
-  const quoterContract = new ethers.Contract(
-    '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6', // quoter address goreli
-    Quoter.abi,
-    provider
-  );
-  if (!quoterContract) return 'error';
-  try {
-    const poolConstants = await getPoolConstants(provider);
-    try {
-      console.log(quoterContract.callStatic);
-      if (!quoterContract || !quoterContract.callStatic) return 'error';
-      const quotedAmountOut =
-        await quoterContract.callStatic.quoteExactInputSingle(
-          poolConstants.token0,
-          poolConstants.token1,
-          poolConstants.fee,
-          fromReadableAmount(amount, 18).toString(),
-          0
-        );
-      console.log(toReadableAmount(quotedAmountOut, 18));
-      return toReadableAmount(quotedAmountOut, 18);
-    } catch (err) {
-      console.log(err);
-      return 'error getting quote';
-    }
-  } catch (err) {
-    console.log(err);
-    return 'error';
-  }
+  return new Promise<string>((resolve, reject) => {
+    const quoterContract = new ethers.Contract(
+      '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6', // quoter address goreli
+      Quoter.abi,
+      provider
+    );
+    if (!quoterContract) reject(err);
+
+    getPoolConstants(provider)
+      .then((poolConstants) => {
+        if (fromEth) {
+          quoterContract.callStatic
+            .quoteExactInputSingle(
+              poolConstants.token0,
+              poolConstants.token1,
+              poolConstants.fee,
+              fromReadableAmount(amount, 18).toString(),
+              0
+            )
+            .then((quotedAmountOut) => {
+              resolve(ethers.utils.formatEther(quotedAmountOut));
+            })
+            .catch((err) => {
+              reject(err);
+            });
+        }
+        quoterContract.callStatic
+          .quoteExactInputSingle(
+            poolConstants.token1,
+            poolConstants.token0,
+            poolConstants.fee,
+            fromReadableAmount(amount, 18).toString(),
+            0
+          )
+          .then((quotedAmountOut) => {
+            resolve(ethers.utils.formatEther(quotedAmountOut));
+          })
+          .catch((err) => {
+            reject(err);
+          });
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
 }
