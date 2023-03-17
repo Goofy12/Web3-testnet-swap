@@ -218,7 +218,7 @@ export async function executeTrade(
 }
 
 // connectedWallet swapRouterAddress, SwapRouterABI
-export async function quickSwap(CurrentConfig: TradingConfig) {
+export async function executeDirtySwap(CurrentConfig: TradingConfig) {
   const provider = getProvider();
   const signer = provider.getSigner();
   const walletAddress = await signer.getAddress();
@@ -241,10 +241,11 @@ export async function quickSwap(CurrentConfig: TradingConfig) {
     amountOutMinimum: ethers.utils.parseUnits('1', 'ether'),
     sqrtPriceLimitX96: 0,
   };
-
+  console.log(JSON.stringify(params), params);
+  console.log(swapRouterContract.connect(signer));
   swapRouterContract
     .connect(signer)
-    .exactInputSingle(params, {
+    .callStatic.exactInputSingle(params, {
       maxFeePerGas: MAX_FEE_PER_GAS,
       maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
     })
