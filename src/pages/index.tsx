@@ -32,15 +32,14 @@ const SwapComponent = (props: SwapProps) => {
           value={props.input}
           onChange={(evt: { target: { value: number | string } }) => {
             const result = evt.target.value;
-            props.setInput(parseFloat(`${result}`));
+            // props.setInput(parseFloat(`${result}`));
+            props.setInput(result);
           }}
           onBlur={(evt: { target: { value: number | string } }) => {
-            console.log('>>> on blur event:', { evt });
             if (evt.target.value === '') {
               props.setInput(0);
             }
             const result = parseFloat(`${evt.target.value}`);
-            console.log('>>> on blur event result:', { result });
             if (props.balance && result > props.balance) {
               props.setInput(
                 parseFloat(parseFloat(`${props.balance}`).toFixed(6)) - 0.000001
@@ -48,6 +47,7 @@ const SwapComponent = (props: SwapProps) => {
             } else if (result < 0) {
               props.setInput(0);
             } else if (Number.isNaN(result)) {
+              console.log('NaN');
               props.setInput(0);
             } else {
               props.setInput(parseFloat(result.toFixed(6)));
@@ -58,7 +58,8 @@ const SwapComponent = (props: SwapProps) => {
       <div className="flex min-w-[192px] flex-col items-start justify-evenly">
         <div className="p-2"> {props.tokenName}</div>
         <div className="p-2">
-          Balance: {props.balance}{' '}
+          Balance: {props.balance.slice(0, 8)}
+          {'... '}
           <span
             className="text-primary-300"
             onClick={() => {
@@ -124,7 +125,7 @@ const Index = () => {
   React.useEffect(() => {
     if (chain && chain.id === 5) {
       // get estimate
-      if (fromEth && nativeInput > 0) {
+      if (fromEth && parseFloat(nativeInput) > 0) {
         getSwapQuote(fromEth, provider, nativeInput)
           .then((quote) => {
             setTokenInput(quote);
@@ -132,7 +133,7 @@ const Index = () => {
           .catch((err) => {
             console.log('price estimate error:', err);
           });
-      } else if (tokenInput > 0) {
+      } else if (parseFloat(tokenInput) > 0) {
         getSwapQuote(fromEth, provider, tokenInput)
           .then((quote) => {
             setNativeInput(quote);
