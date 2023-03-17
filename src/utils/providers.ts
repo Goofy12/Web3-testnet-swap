@@ -3,7 +3,6 @@ import { ethers } from 'ethers';
 
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
 const browserExtensionProvider = createBrowserExtensionProvider();
-let walletExtensionAddress: string | null = null;
 
 // Interfaces
 
@@ -17,27 +16,11 @@ export enum TransactionState {
 
 // Provider and Wallet Functions
 
-export async function connectBrowserExtensionWallet() {
-  if (!window.ethereum) {
-    return null;
-  }
-
-  const { ethereum } = window;
-  const provider = new ethers.providers.Web3Provider(ethereum);
-  const accounts = await provider.send('eth_requestAccounts', []);
-
-  if (accounts.length !== 1) {
-    // eslint-disable-next-line consistent-return
-    return;
-  }
-
-  walletExtensionAddress = accounts[0];
-  return walletExtensionAddress;
-}
-
 function createBrowserExtensionProvider(): ethers.providers.Web3Provider | null {
   try {
-    return new ethers.providers.Web3Provider(window?.ethereum, 'any');
+    const ethereum = window?.ethereum as any;
+    if (!ethereum) return null;
+    return new ethers.providers.Web3Provider(ethereum, 'any');
   } catch (e) {
     console.log('No Wallet Extension Found');
     return null;
