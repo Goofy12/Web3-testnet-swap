@@ -1,28 +1,23 @@
-import JSBI from 'jsbi';
+import type { Token, TradeType } from '@uniswap/sdk-core';
+import type { Trade } from '@uniswap/v3-sdk';
+import type { BigNumber } from 'ethers';
+import { ethers } from 'ethers';
+
+const MAX_DECIMALS = 4;
+
+export function fromReadableAmount(
+  amount: number,
+  decimals: number
+): BigNumber {
+  return ethers.utils.parseUnits(amount.toString(), decimals);
+}
 
 export function toReadableAmount(rawAmount: number, decimals: number): string {
-  return JSBI.divide(
-    JSBI.BigInt(rawAmount),
-    JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimals))
-  ).toString();
+  return ethers.utils.formatUnits(rawAmount, decimals).slice(0, MAX_DECIMALS);
 }
 
-function countDecimals(x: number) {
-  if (!x) return 0;
-  if (Math.floor(x) === x) {
-    return 0;
-  }
-  return x.toString().split('.')[1].length || 0;
-}
-
-export function fromReadableAmount(amount: number, decimals: number): JSBI {
-  const extraDigits = 10 ** countDecimals(amount);
-  const adjustedAmount = amount * extraDigits;
-  return JSBI.divide(
-    JSBI.multiply(
-      JSBI.BigInt(adjustedAmount),
-      JSBI.exponentiate(JSBI.BigInt(10), JSBI.BigInt(decimals))
-    ),
-    JSBI.BigInt(extraDigits)
-  );
+export function displayTrade(trade: Trade<Token, Token, TradeType>): string {
+  return `${trade.inputAmount.toExact()} ${
+    trade.inputAmount.currency.symbol
+  } for ${trade.outputAmount.toExact()} ${trade.outputAmount.currency.symbol}`;
 }

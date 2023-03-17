@@ -57,6 +57,55 @@ async function getPoolConstants(provider: ethers.providers): Promise<{
   }
 }
 
+export async function getPoolInfo(
+  provider: ethers.providers
+): Promise<PoolInfo> {
+  if (!provider) {
+    throw new Error('No provider');
+  }
+
+  const chainId = sdk.SupportedChainId.GOERLI;
+
+  // Address of NightTestToken on Goreli
+  const tokenAddress = '0xc62b062645720808ee49f0df185b3228fa6288df';
+
+  // Create a Token object for NightTestToken
+  const token = new Token(chainId, tokenAddress, 18);
+  const native = sdk.WETH9[chainId];
+
+  const currentPoolAddress = v3sdk.computePoolAddress({
+    factoryAddress: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+    tokenA: token,
+    tokenB: native,
+    fee: v3sdk.FeeAmount.HIGH,
+  });
+  const poolContract = new ethers.Contract(
+    currentPoolAddress,
+    IUniswapV3PoolABI.abi,
+    provider
+  );
+
+  const [token0, token1, fee, tickSpacing, liquidity, slot0] =
+    await Promise.all([
+      poolContract.token0(),
+      poolContract.token1(),
+      poolContract.fee(),
+      poolContract.tickSpacing(),
+      poolContract.liquidity(),
+      poolContract.slot0(),
+    ]);
+
+  return {
+    token0,
+    token1,
+    fee,
+    tickSpacing,
+    liquidity,
+    sqrtPriceX96: slot0[0],
+    tick: slot0[1],
+  };
+}
+
 export function getSwapQuote(
   fromEth: boolean,
   provider: ethers.providers,

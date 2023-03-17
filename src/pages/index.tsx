@@ -1,3 +1,4 @@
+import { FeeAmount } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
 import React from 'react';
 import { useAccount, useNetwork, useProvider, useSwitchNetwork } from 'wagmi';
@@ -5,7 +6,15 @@ import { useAccount, useNetwork, useProvider, useSwitchNetwork } from 'wagmi';
 import { Meta } from '@/layouts/Meta';
 import { Main } from '@/templates/Main';
 
-import NightTestToken from '../../public/NightTestToken.json';
+import NightTestTokenJSON from '../../public/NightTestToken.json';
+import { SWAP_ROUTER_ADDRESS } from '../utils/constants';
+import type { TradingConfig } from '../utils/trading';
+import {
+  createTrade,
+  executeTrade,
+  Native,
+  NightTestToken,
+} from '../utils/trading';
 import { getSwapQuote } from '../utils/uni';
 
 type SwapProps = {
@@ -75,24 +84,19 @@ const Index = () => {
   const { chain } = useNetwork();
   const { switchNetwork } = useSwitchNetwork();
   const provider = useProvider({ chainId: 5 });
-
   // display state managment
   const [tokenInput, setTokenInput] = React.useState(0);
   const [tokenBalance, setTokenBalance] = React.useState(0);
-
+  const [tokenSwapAllowance, setTokenSwapAllowance] = React.useState(0);
   const [nativeInput, setNativeInput] = React.useState(0);
   const [balance, setBalance] = React.useState(0);
   const [fromEth, setFromETH] = React.useState(true);
-  // Async data
 
+  // Async data
   React.useEffect(() => {
     provider
       .getBalance(address)
       .then((currentBalance) => {
-        console.log(
-          'Ether Balance Found: ',
-          ethers.utils.formatEther(currentBalance)
-        );
         setBalance(ethers.utils.formatEther(currentBalance));
       })
       .catch((err) => {
@@ -102,13 +106,19 @@ const Index = () => {
       // get the ERC20 balance
       const NightTestTokenContract = new ethers.Contract(
         '0xc62b062645720808ee49f0df185b3228fa6288df',
-        NightTestToken.abi,
+        NightTestTokenJSON.abi,
         provider
       );
       NightTestTokenContract.balanceOf(address)
         .then((newTokenBalance) => {
-          console.log(ethers.utils.formatEther(newTokenBalance));
           setTokenBalance(ethers.utils.formatEther(newTokenBalance));
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+      NightTestTokenContract.allowance(address, SWAP_ROUTER_ADDRESS)
+        .then((allowance) => {
+          setTokenSwapAllowance(allowance.toString());
         })
         .catch((err) => {
           console.log(err);
@@ -120,7 +130,6 @@ const Index = () => {
     if (chain && chain.id === 5) {
       // get estimate
       if (fromEth && nativeInput > 0) {
-        console.log('swap from ETH: ', nativeInput);
         getSwapQuote(fromEth, provider, nativeInput)
           .then((quote) => {
             setTokenInput(quote);
@@ -129,7 +138,6 @@ const Index = () => {
             console.log('price estimate error:', err);
           });
       } else if (tokenInput > 0) {
-        console.log('swap from token: ', tokenInput);
         getSwapQuote(fromEth, provider, tokenInput)
           .then((quote) => {
             setNativeInput(quote);
@@ -155,8 +163,47 @@ const Index = () => {
       }
     }
     if (chain && chain.id === 5) {
-      getSwapQuote(true, provider, 0.024);
+      // if (
+      //   parseInt(tokenSwapAllowance, 10) === 0 ||
+      //   parseInt(tokenSwapAllowance, 10) < tokenInput
+      // ) {
+      //   getTokenTransferApproval(address, 2000);
+      //   return;
+      // }
+      const TradeConfig: TradingConfig = {
+        tokens: {
+          in: Native,
+          out: NightTestToken,
+          amountIn: 1,
+          poolFee: FeeAmount.HIGH,
+        },
+      };
+      try {
+        const newTrade = await createTrade(TradeConfig);
+        executeTrade(newTrade, TradeConfig, address)
+          .then((res) => {
+            console.log(res);
+          })
+          .catch((err) => {
+            console.log('error executing trade', err);
+          });
+      } catch (err) {
+        console.log('error making trade', err);
+      }
     }
+  };
+
+  const getBigButtonText = () => {
+    if (chain && chain.id === 5) {
+      if (
+        parseInt(tokenSwapAllowance, 10) === 0 ||
+        parseInt(tokenSwapAllowance, 10) < tokenInput
+      ) {
+        return ' Approve NTT Swap';
+      }
+      return 'Swap Tokens';
+    }
+    return 'Switch to Goreli Network';
   };
   return (
     <Main
@@ -222,9 +269,7 @@ const Index = () => {
                 className="text-lg text-black group-hover:text-primary-200"
                 onClick={bigButtonHandler}
               >
-                {chain && chain.id === 5
-                  ? 'Swap Now'
-                  : 'Switch Network to Gorelli'}
+                {getBigButtonText()}
               </div>
             </div>
           </div>
