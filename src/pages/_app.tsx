@@ -1,15 +1,26 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import '../styles/global.css';
 
-import { getDefaultProvider } from 'ethers';
 import type { AppProps } from 'next/app';
 import { useEffect, useState } from 'react';
-import { createClient, WagmiConfig } from 'wagmi';
+import {
+  configureChains,
+  createClient,
+  goerli,
+  mainnet,
+  WagmiConfig,
+} from 'wagmi';
+import { publicProvider } from 'wagmi/providers/public';
 
-// Configure wagmi client
-const wagmiClient = createClient({
+const { provider, webSocketProvider } = configureChains(
+  [mainnet, goerli],
+  [publicProvider()]
+);
+
+const client = createClient({
   autoConnect: true,
-  provider: getDefaultProvider(),
+  provider,
+  webSocketProvider,
 });
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -22,7 +33,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       {ready ? (
-        <WagmiConfig client={wagmiClient}>
+        <WagmiConfig client={client}>
           <Component {...pageProps} />
         </WagmiConfig>
       ) : null}

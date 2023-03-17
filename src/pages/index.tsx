@@ -1,21 +1,39 @@
 import React from 'react';
+import { useAccount, useNetwork, useProvider, useSwitchNetwork } from 'wagmi';
 
-// import { useAccount, useBalance, useNetwork } from 'wagmi';
 import { Meta } from '@/layouts/Meta';
 import { Main } from '@/templates/Main';
+
+import { getSwapQuote } from '../utils/uni';
 
 const Index = () => {
   const [input, setInput] = React.useState(125);
   const [balance, setBalance] = React.useState(220);
-  // const { address, isConnecting, isDisconnected } = useAccount();
-  // const { chain } = useNetwork();
+  const { isDisconnected } = useAccount();
+  const { chain } = useNetwork();
+  const { switchNetwork } = useSwitchNetwork();
+  const provider = useProvider({ chainId: 5 });
   // const { data, isError, isLoading } = useBalance({
   //   address,
   // });
   // React.useEffect(() => {
 
   // });
-
+  const bigButtonHandler = async () => {
+    if (isDisconnected) return;
+    if (chain && chain.id !== 5) {
+      // handle switching networks
+      try {
+        if (switchNetwork) await switchNetwork(5);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(err);
+      }
+    }
+    if (chain && chain.id === 5) {
+      getSwapQuote(provider, 15);
+    }
+  };
   return (
     <Main
       meta={
@@ -84,9 +102,17 @@ const Index = () => {
             </div>
           </div>
           <div className="my-2 w-full px-4">
-            <div className="group my-2 flex items-center justify-center rounded border-2 border-primary-200 bg-primary-200 px-4 py-2 hover:bg-gray-300">
-              <div className="text-lg text-black group-hover:text-primary-200">
-                Swap Now
+            <div
+              className="group my-2 flex items-center justify-center rounded border-2 border-primary-200 bg-primary-200 px-4 py-2 hover:bg-gray-300"
+              onClick={bigButtonHandler}
+            >
+              <div
+                className="text-lg text-black group-hover:text-primary-200"
+                onClick={bigButtonHandler}
+              >
+                {chain && chain.id === 5
+                  ? 'Swap Now'
+                  : 'Switch Network to Gorelli'}
               </div>
             </div>
           </div>
