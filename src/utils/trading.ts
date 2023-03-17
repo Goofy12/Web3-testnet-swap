@@ -30,6 +30,10 @@ import { fromReadableAmount } from './conversions';
 import { getPoolInfo } from './pool';
 import { getProvider, sendTransaction, TransactionState } from './providers';
 
+const {
+  abi: SwapRouterABI,
+} = require('@uniswap/v3-periphery/artifacts/contracts/interfaces/ISwapRouter.sol/ISwapRouter.json');
+
 export type TokenTrade = Trade<Token, Token, TradeType>;
 
 export const NightTestToken = new Token(
@@ -83,7 +87,6 @@ async function getOutputQuote(
 }
 
 export async function getTokenTransferApproval(
-  token: Token,
   address: string
 ): Promise<TransactionState> {
   const provider = getProvider();
@@ -95,7 +98,7 @@ export async function getTokenTransferApproval(
 
   try {
     const tokenContract = new ethers.Contract(
-      token.address,
+      NightTestToken.address,
       ERC20_ABI,
       provider
     );
@@ -104,7 +107,7 @@ export async function getTokenTransferApproval(
       SWAP_ROUTER_ADDRESS,
       fromReadableAmount(
         TOKEN_AMOUNT_TO_APPROVE_FOR_TRANSFER,
-        token.decimals
+        NightTestToken.decimals
       ).toString()
     );
 
@@ -173,16 +176,6 @@ export async function executeTrade(
     throw new Error('Cannot execute a trade without a connected wallet');
   }
 
-  // // Give approval to the router to spend the token
-  // const tokenApproval = await getTokenTransferApproval(
-  //   CurrentConfig.tokens.in,
-  //   walletAddress
-  // );
-
-  // // Fail if transfer approvals do not go through
-  // if (tokenApproval !== TransactionState.Sent) {
-  //   return TransactionState.Failed;
-  // }
   const options: SwapOptions = {
     slippageTolerance: new Percent(500, 10_000), // 50 bips, or 0.50%
     deadline: Math.floor(Date.now() / 1000) + 60 * 20, // 20 minutes from the current Unix time
@@ -222,4 +215,43 @@ export async function executeTrade(
   const res = await sendTransaction(tx);
 
   return res;
+}
+
+// connectedWallet swapRouterAddress, SwapRouterABI
+export async function quickSwap(CurrentConfig: TradingConfig) {
+  const provider = getProvider();
+  const signer = provider.getSigner();
+  const walletAddress = await signer.getAddress();
+  if (!provider) {
+    throw new Error('Cannot execute a trade without a connected wallet');
+  }
+  const swapRouterContract = new ethers.Contract(
+    SWAP_ROUTER_ADDRESS,
+    SwapRouterABI,
+    provider
+  );
+
+  const params = {
+    tokenIn: CurrentConfig.tokens.in.address,
+    tokenOut: CurrentConfig.tokens.out.address,
+    fee: CurrentConfig.tokens.poolFee,
+    recipient: walletAddress,
+    deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+    amountIn: CurrentConfig.tokens.amountIn,
+    amountOutMinimum: ethers.utils.parseUnits('1', 'ether'),
+    sqrtPriceLimitX96: 0,
+  };
+
+  swapRouterContract
+    .connect(signer)
+    .exactInputSingle(params, {
+      maxFeePerGas: MAX_FEE_PER_GAS,
+      maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
+    })
+    .then((transaction) => {
+      console.log(transaction);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 }

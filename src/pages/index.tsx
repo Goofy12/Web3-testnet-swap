@@ -9,12 +9,7 @@ import { Main } from '@/templates/Main';
 import NightTestTokenJSON from '../../public/NightTestToken.json';
 import { SWAP_ROUTER_ADDRESS } from '../utils/constants';
 import type { TradingConfig } from '../utils/trading';
-import {
-  createTrade,
-  executeTrade,
-  Native,
-  NightTestToken,
-} from '../utils/trading';
+import { executeDirtySwap, Native, NightTestToken } from '../utils/trading';
 import { getSwapQuote } from '../utils/uni';
 
 type SwapProps = {
@@ -163,30 +158,26 @@ const Index = () => {
       }
     }
     if (chain && chain.id === 5) {
-      // if (
-      //   parseInt(tokenSwapAllowance, 10) === 0 ||
-      //   parseInt(tokenSwapAllowance, 10) < tokenInput
-      // ) {
-      //   getTokenTransferApproval(address, 2000);
-      //   return;
-      // }
+      if (
+        parseInt(tokenSwapAllowance, 10) === 0 ||
+        parseInt(tokenSwapAllowance, 10) < tokenInput
+      ) {
+        getTokenTransferApproval(address, 2000);
+        return;
+      }
+      const amountInt = ethers.utils.parseUnits(tokenInput.toString(), 'ether');
       const TradeConfig: TradingConfig = {
         tokens: {
           in: Native,
           out: NightTestToken,
-          amountIn: 1,
+          amountIn: amountInt,
           poolFee: FeeAmount.HIGH,
         },
       };
       try {
-        const newTrade = await createTrade(TradeConfig);
-        executeTrade(newTrade, TradeConfig, address)
-          .then((res) => {
-            console.log(res);
-          })
-          .catch((err) => {
-            console.log('error executing trade', err);
-          });
+        executeDirtySwap(TradeConfig).on((err) => {
+          console.log(err);
+        });
       } catch (err) {
         console.log('error making trade', err);
       }
