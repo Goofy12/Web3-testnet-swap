@@ -8,14 +8,7 @@ import {
   WETH9,
 } from '@uniswap/sdk-core';
 import type { SwapOptions } from '@uniswap/v3-sdk';
-import {
-  Pool,
-  Route,
-  SwapQuoter,
-  SwapRouter,
-  toHex,
-  Trade,
-} from '@uniswap/v3-sdk';
+import { Pool, Route, SwapQuoter, SwapRouter, Trade } from '@uniswap/v3-sdk';
 import { ethers } from 'ethers';
 
 import {
@@ -102,6 +95,12 @@ export async function getTokenTransferApproval(
       ERC20_ABI,
       provider
     );
+    if (
+      !tokenContract ||
+      !tokenContract.populateTransaction ||
+      !tokenContract.populateTransaction.approve
+    )
+      return TransactionState.Failed;
 
     const transaction = await tokenContract.populateTransaction.approve(
       SWAP_ROUTER_ADDRESS,
@@ -167,7 +166,7 @@ export async function createTrade(
 
 export async function executeTrade(
   trade: TokenTrade,
-  CurrentConfig: TradingConfig,
+  // CurrentConfig: TradingConfig,
   walletAddress: string
 ): Promise<TransactionState> {
   const provider = getProvider();
@@ -182,31 +181,43 @@ export async function executeTrade(
     recipient: walletAddress,
   };
   console.log(trade);
-  const { route, inputAmount, outputAmount } = trade.swaps[0];
-  const amountIn: string = toHex(
-    trade.maximumAmountIn(options.slippageTolerance, inputAmount).quotient
-  );
-  const amountOut: string = toHex(
-    trade.minimumAmountOut(options.slippageTolerance, outputAmount).quotient
-  );
+  // Manual routing to try and avoid the Bug in SwapRouter
+  // const { route, inputAmount, outputAmount } = trade.swaps[0];
+  // const amountIn: string = toHex(
+  //   trade.maximumAmountIn(options.slippageTolerance, inputAmount).quotient
+  // );
+  // const amountOut: string = toHex(
+  //   trade.minimumAmountOut(options.slippageTolerance, outputAmount).quotient
+  // );
 
-  const exactInputSingleParams = {
-    tokenIn: route.tokenPath[0].address,
-    tokenOut: route.tokenPath[1].address,
-    fee: route.pools[0].fee,
-    recipient,
-    deadline,
-    amountIn,
-    amountOutMinimum: amountOut,
-    sqrtPriceLimitX96: toHex(options.sqrtPriceLimitX96 ?? 0),
-  };
+  // const exactInputSingleParams = {
+  //   tokenIn: route.tokenPath[0].address,
+  //   tokenOut: route.tokenPath[1].address,
+  //   fee: route.pools[0].fee,
+  //   recipient,
+  //   deadline,
+  //   amountIn,
+  //   amountOutMinimum: amountOut,
+  //   sqrtPriceLimitX96: toHex(options.sqrtPriceLimitX96 ?? 0),
+  // };
+
+  // const tx = {
+  //   data: SwapRouter.INTERFACE.encodeFunctionData('exactInputSingle', [
+  //     exactInputSingleParams,
+  //   ]),
+  //   to: SWAP_ROUTER_ADDRESS,
+  //   value: toHex(10000000000000000),
+  //   from: walletAddress,
+  //   maxFeePerGas: MAX_FEE_PER_GAS,
+  //   maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
+  // };
+
+  const methodParameters = SwapRouter.swapCallParameters([trade], options);
 
   const tx = {
-    data: SwapRouter.INTERFACE.encodeFunctionData('exactInputSingle', [
-      exactInputSingleParams,
-    ]),
+    data: methodParameters.calldata,
     to: SWAP_ROUTER_ADDRESS,
-    value: toHex(10000000000000000),
+    value: methodParameters.value,
     from: walletAddress,
     maxFeePerGas: MAX_FEE_PER_GAS,
     maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
@@ -220,9 +231,13 @@ export async function executeTrade(
 // connectedWallet swapRouterAddress, SwapRouterABI
 export async function executeDirtySwap(CurrentConfig: TradingConfig) {
   const provider = getProvider();
+
+  if (!provider) {
+    throw new Error('Cannot execute a trade without a connected wallet');
+  }
   const signer = provider.getSigner();
   const walletAddress = await signer.getAddress();
-  if (!provider) {
+  if (!walletAddress) {
     throw new Error('Cannot execute a trade without a connected wallet');
   }
   const swapRouterContract = new ethers.Contract(
@@ -243,9 +258,18 @@ export async function executeDirtySwap(CurrentConfig: TradingConfig) {
   };
   console.log(JSON.stringify(params), params);
   console.log(swapRouterContract.connect(signer));
-  swapRouterContract
-    .connect(signer)
-    .callStatic.exactInputSingle(params, {
+  const swapRouterContractWithSigner = swapRouterContract.connect(signer);
+
+  if (
+    !swapRouterContractWithSigner ||
+    !swapRouterContractWithSigner.callStatic ||
+    !swapRouterContractWithSigner.callStatic.exactInputSingle
+  ) {
+    throw new Error('Cannot execute a trade without a connected wallet');
+  }
+
+  swapRouterContractWithSigner?.callStatic
+    ?.exactInputSingle(params, {
       maxFeePerGas: MAX_FEE_PER_GAS,
       maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
     })

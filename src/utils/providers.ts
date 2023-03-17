@@ -1,6 +1,4 @@
 /* eslint-disable prefer-destructuring */
-import type { BaseProvider } from '@ethersproject/providers';
-import type { providers } from 'ethers';
 import { ethers } from 'ethers';
 
 // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -18,14 +16,6 @@ export enum TransactionState {
 }
 
 // Provider and Wallet Functions
-
-export function getMainnetProvider(): BaseProvider {
-  return mainnetProvider;
-}
-
-export function getWalletAddress(): string | null {
-  return walletExtensionAddress;
-}
 
 export async function connectBrowserExtensionWallet() {
   if (!window.ethereum) {
@@ -53,7 +43,7 @@ function createBrowserExtensionProvider(): ethers.providers.Web3Provider | null 
     return null;
   }
 }
-export function getProvider(): providers.Provider | null {
+export function getProvider(): ethers.providers.Web3Provider | null {
   return createBrowserExtensionProvider();
 }
 // Transacting with a wallet extension via a Web3 Provider

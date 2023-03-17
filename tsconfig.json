@@ -45,7 +45,8 @@
     "./out/**/*",
     "./node_modules/**/*",
     "./NightTestToken/**/*",
-    "cypress/**/*.ts"
+    "cypress/**/*.ts",
+    "./src/utils/providers.ts"
   ],
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"]
 }

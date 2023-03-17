@@ -9,7 +9,12 @@ import { Main } from '@/templates/Main';
 import NightTestTokenJSON from '../../public/NightTestToken.json';
 import { SWAP_ROUTER_ADDRESS } from '../utils/constants';
 import type { TradingConfig } from '../utils/trading';
-import { executeDirtySwap, Native, NightTestToken } from '../utils/trading';
+import {
+  executeDirtySwap,
+  getTokenTransferApproval,
+  Native,
+  NightTestToken,
+} from '../utils/trading';
 import { getSwapQuote } from '../utils/uni';
 
 type SwapProps = {
@@ -40,7 +45,7 @@ const SwapComponent = (props: SwapProps) => {
               props.setInput(0);
             }
             const result = parseFloat(`${evt.target.value}`);
-            if (props.balance && result > props.balance) {
+            if (props.balance && result > parseFloat(props.balance)) {
               props.setInput(
                 parseFloat(parseFloat(`${props.balance}`).toFixed(6)) - 0.000001
               );
@@ -81,24 +86,25 @@ const Index = () => {
   const { switchNetwork } = useSwitchNetwork();
   const provider = useProvider({ chainId: 5 });
   // display state managment
-  const [tokenInput, setTokenInput] = React.useState(0);
-  const [tokenBalance, setTokenBalance] = React.useState(0);
-  const [tokenSwapAllowance, setTokenSwapAllowance] = React.useState(0);
-  const [nativeInput, setNativeInput] = React.useState(0);
-  const [balance, setBalance] = React.useState(0);
+  const [tokenInput, setTokenInput] = React.useState('0');
+  const [tokenBalance, setTokenBalance] = React.useState('0');
+  const [tokenSwapAllowance, setTokenSwapAllowance] = React.useState('0');
+  const [nativeInput, setNativeInput] = React.useState('0');
+  const [balance, setBalance] = React.useState('0');
   const [fromEth, setFromETH] = React.useState(true);
 
   // Async data
   React.useEffect(() => {
+    if (!address) return;
     provider
       .getBalance(address)
       .then((currentBalance) => {
         setBalance(ethers.utils.formatEther(currentBalance));
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         console.log(err);
       });
-    if (chain.id === 5) {
+    if (chain && chain.id === 5) {
       // get the ERC20 balance
       const NightTestTokenContract = new ethers.Contract(
         '0xc62b062645720808ee49f0df185b3228fa6288df',
@@ -106,17 +112,17 @@ const Index = () => {
         provider
       );
       NightTestTokenContract.balanceOf(address)
-        .then((newTokenBalance) => {
+        .then((newTokenBalance: string) => {
           setTokenBalance(ethers.utils.formatEther(newTokenBalance));
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           console.log(err);
         });
       NightTestTokenContract.allowance(address, SWAP_ROUTER_ADDRESS)
-        .then((allowance) => {
-          setTokenSwapAllowance(allowance.toString());
+        .then((allowance: string) => {
+          setTokenSwapAllowance(allowance);
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           console.log(err);
         });
     }
@@ -126,19 +132,19 @@ const Index = () => {
     if (chain && chain.id === 5) {
       // get estimate
       if (fromEth && parseFloat(nativeInput) > 0) {
-        getSwapQuote(fromEth, provider, nativeInput)
+        getSwapQuote(fromEth, nativeInput)
           .then((quote) => {
             setTokenInput(quote);
           })
-          .catch((err) => {
+          .catch((err: Error) => {
             console.log('price estimate error:', err);
           });
       } else if (parseFloat(tokenInput) > 0) {
-        getSwapQuote(fromEth, provider, tokenInput)
+        getSwapQuote(fromEth, tokenInput)
           .then((quote) => {
             setNativeInput(quote);
           })
-          .catch((err) => {
+          .catch((err: Error) => {
             console.log('price estimate error:', err);
           });
       }
@@ -148,7 +154,7 @@ const Index = () => {
   // input handlers
 
   const bigButtonHandler = async () => {
-    if (isDisconnected) return;
+    if (isDisconnected || !address) return;
     if (chain && chain.id !== 5) {
       // handle switching networks
       try {
@@ -161,23 +167,24 @@ const Index = () => {
     if (chain && chain.id === 5) {
       if (
         parseInt(tokenSwapAllowance, 10) === 0 ||
-        parseInt(tokenSwapAllowance, 10) < tokenInput
+        parseInt(tokenSwapAllowance, 10) < parseFloat(tokenInput)
       ) {
-        getTokenTransferApproval(address, 2000);
+        getTokenTransferApproval(address);
         return;
       }
       const amountInt = ethers.utils.parseUnits(tokenInput.toString(), 'ether');
+      if (!Native || !NightTestToken) return;
       const TradeConfig: TradingConfig = {
         tokens: {
           in: Native,
           out: NightTestToken,
-          amountIn: amountInt,
+          amountIn: amountInt.toNumber(), // not safe operation since Number can overflow easily...
           poolFee: FeeAmount.HIGH,
         },
       };
       try {
-        executeDirtySwap(TradeConfig).on((err) => {
-          console.log(err);
+        executeDirtySwap(TradeConfig).then((res) => {
+          console.log(res);
         });
       } catch (err) {
         console.log('error making trade', err);
@@ -189,7 +196,7 @@ const Index = () => {
     if (chain && chain.id === 5) {
       if (
         parseInt(tokenSwapAllowance, 10) === 0 ||
-        parseInt(tokenSwapAllowance, 10) < tokenInput
+        parseInt(tokenSwapAllowance, 10) < parseFloat(tokenInput)
       ) {
         return ' Approve NTT Swap';
       }
