@@ -16,7 +16,7 @@ const AccountNav = () => {
 
   if (isConnected && chain)
     return (
-      <div className="group m-2 flex items-center justify-evenly rounded border-2 border-slate-200 p-2 hover:border-primary-200">
+      <div className="group m-2 flex cursor-pointer items-center justify-evenly rounded border-2 border-slate-200 p-2 hover:border-primary-200">
         <Eth
           classes="fill-slate-200 group-hover:fill-primary-200 "
           width="32px"

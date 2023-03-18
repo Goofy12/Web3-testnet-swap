@@ -40,7 +40,7 @@ export type TradingConfig = {
   tokens: {
     in: Token;
     out: Token;
-    amountIn: number;
+    amountIn: string;
     poolFee: number;
   };
 };

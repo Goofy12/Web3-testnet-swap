@@ -66,7 +66,7 @@ const SwapComponent = (props: SwapProps) => {
           Balance: {props.balance.slice(0, 8)}
           {'... '}
           <span
-            className="text-primary-300"
+            className="cursor-pointer text-primary-300"
             onClick={() => {
               props.setInput(props.balance);
             }}
@@ -126,7 +126,7 @@ const Index = () => {
           console.log(err);
         });
     }
-  }, []);
+  }, [address]);
 
   React.useEffect(() => {
     if (chain && chain.id === 5) {
@@ -178,7 +178,7 @@ const Index = () => {
         tokens: {
           in: Native,
           out: NightTestToken,
-          amountIn: amountInt.toNumber(), // not safe operation since Number can overflow easily...
+          amountIn: amountInt.toString(), // not safe operation since Number can overflow easily...
           poolFee: FeeAmount.HIGH,
         },
       };
@@ -261,7 +261,7 @@ const Index = () => {
 
           <div className="my-2 w-full px-4">
             <div
-              className="group my-2 flex items-center justify-center rounded border-2 border-primary-200 bg-primary-200 px-4 py-2 hover:bg-gray-300"
+              className="group my-2 flex cursor-pointer items-center justify-center rounded border-2 border-primary-200 bg-primary-200 px-4 py-2 hover:bg-gray-300"
               onClick={bigButtonHandler}
             >
               <div
