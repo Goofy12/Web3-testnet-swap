@@ -91,8 +91,8 @@ export async function getPoolInfo(): Promise<PoolInfo> {
   if (!token || !native) throw new Error('tokens undefined');
   const currentPoolAddress = v3sdk.computePoolAddress({
     factoryAddress: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-    tokenA: token,
-    tokenB: native,
+    tokenA: native,
+    tokenB: token,
     fee: v3sdk.FeeAmount.HIGH,
   });
   const poolContract = new ethers.Contract(

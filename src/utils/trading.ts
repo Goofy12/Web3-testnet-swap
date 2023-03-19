@@ -43,6 +43,7 @@ export type TradingConfig = {
     amountIn: string;
     poolFee: number;
   };
+  slippage: string;
 };
 // Helper Quoting and Pool Functions
 
@@ -253,7 +254,7 @@ export async function executeDirtySwap(CurrentConfig: TradingConfig) {
     recipient: walletAddress,
     deadline: Math.floor(Date.now() / 1000) + 60 * 10,
     amountIn: CurrentConfig.tokens.amountIn,
-    amountOutMinimum: ethers.utils.parseUnits('1', 'ether'),
+    amountOutMinimum: ethers.utils.parseUnits('1', 'ether').toString(),
     sqrtPriceLimitX96: 0,
   };
   console.log(JSON.stringify(params), params);
@@ -277,6 +278,7 @@ export async function executeDirtySwap(CurrentConfig: TradingConfig) {
       console.log(transaction);
     })
     .catch((err) => {
+      console.log(params, MAX_PRIORITY_FEE_PER_GAS, MAX_FEE_PER_GAS);
       console.log(err);
     });
 }

@@ -181,6 +181,7 @@ const Index = () => {
           amountIn: amountInt.toString(), // not safe operation since Number can overflow easily...
           poolFee: FeeAmount.HIGH,
         },
+        slippage: '500',
       };
       try {
         executeDirtySwap(TradeConfig).then((res) => {
