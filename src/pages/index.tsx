@@ -196,13 +196,17 @@ const Index = () => {
       }
     }
     if (chain && chain.id === 5) {
+      // disable if there is already a tx
+      if (currentTx !== '') return;
       if (
         parseInt(tokenSwapAllowance, 10) === 0 ||
         parseInt(tokenSwapAllowance, 10) < parseFloat(tokenInput)
       ) {
         getTokenTransferApproval(address);
+        setStatusMsg(`Sent Approval Tx`);
         return;
       }
+
       if (!Native || !NightTestToken) return;
       const TradeConfig: TradingConfig = {
         // 0.00111
@@ -238,10 +242,9 @@ const Index = () => {
             'Transaction successfully Sent. Waiting for confirmation'
           );
         })
-        .catch((err) => {
+        .catch(() => {
           setStatusMsg(`Transaction Error`);
           setCurrentTx('');
-          console.log('error making trade', err);
         });
     }
   };

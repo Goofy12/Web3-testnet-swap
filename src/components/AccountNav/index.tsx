@@ -45,7 +45,7 @@ const AccountNav = () => {
                 return (
                   <div key={i}>
                     <a
-                      className="text-primary-200"
+                      className="border-none text-primary-200 hover:underline"
                       href={`https://goerli.etherscan.io/tx/${txHash}`}
                       target="_blank"
                     >

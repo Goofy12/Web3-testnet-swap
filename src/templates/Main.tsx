@@ -27,7 +27,7 @@ const Main = (props: IMainProps) => {
                   Home
                 </Link>
               </li>
-              <li className="mr-6">
+              <li className="">
                 <AccountNav />
               </li>
             </ul>
