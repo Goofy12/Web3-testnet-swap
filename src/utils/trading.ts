@@ -123,7 +123,7 @@ export async function getTokenTransferApproval(
   }
 }
 
-// Trading Functions
+// Trading Functions using uniswap SDK
 
 export async function createTrade(
   CurrentConfig: TradingConfig
@@ -231,7 +231,7 @@ export async function executeTrade(
   return res;
 }
 
-// connectedWallet swapRouterAddress, SwapRouterABI
+// Dirty swap function which takes direct values and does an unsafe swap against the contract directly (working)
 export function executeDirtySwap(
   CurrentConfig: TradingConfig
 ): Promise<ethers.providers.TransactionResponse> {

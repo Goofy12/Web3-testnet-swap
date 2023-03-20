@@ -3,6 +3,7 @@ import '../styles/global.css';
 
 import type { AppProps } from 'next/app';
 import { useEffect, useState } from 'react';
+import { Provider } from 'react-redux';
 import {
   configureChains,
   createClient,
@@ -11,6 +12,8 @@ import {
   WagmiConfig,
 } from 'wagmi';
 import { publicProvider } from 'wagmi/providers/public';
+
+import { store } from '../utils/redux';
 
 const { provider, webSocketProvider } = configureChains(
   [mainnet, goerli],
@@ -34,7 +37,9 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       {ready ? (
         <WagmiConfig client={client}>
-          <Component {...pageProps} />
+          <Provider store={store}>
+            <Component {...pageProps} />
+          </Provider>
         </WagmiConfig>
       ) : null}
     </>
