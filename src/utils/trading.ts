@@ -9,6 +9,7 @@ import {
 } from '@uniswap/sdk-core';
 import type { SwapOptions } from '@uniswap/v3-sdk';
 import { Pool, Route, SwapQuoter, SwapRouter, Trade } from '@uniswap/v3-sdk';
+import type { Signer } from 'ethers';
 import { ethers } from 'ethers';
 
 import {
@@ -44,6 +45,7 @@ export type TradingConfig = {
     poolFee: number;
   };
   slippage: string;
+  fromEth: boolean;
 };
 // Helper Quoting and Pool Functions
 
@@ -230,55 +232,72 @@ export async function executeTrade(
 }
 
 // connectedWallet swapRouterAddress, SwapRouterABI
-export async function executeDirtySwap(CurrentConfig: TradingConfig) {
-  const provider = getProvider();
+export function executeDirtySwap(
+  CurrentConfig: TradingConfig
+): Promise<ethers.providers.TransactionResponse> {
+  return new Promise((resolve, reject) => {
+    const ethProvider = getProvider();
 
-  if (!provider) {
-    throw new Error('Cannot execute a trade without a connected wallet');
-  }
-  const signer = provider.getSigner();
-  const walletAddress = await signer.getAddress();
-  if (!walletAddress) {
-    throw new Error('Cannot execute a trade without a connected wallet');
-  }
-  const swapRouterContract = new ethers.Contract(
-    SWAP_ROUTER_ADDRESS,
-    SwapRouterABI,
-    provider
-  );
+    if (!ethProvider) {
+      reject(new Error('Provider undefined'));
+    }
+    const signer: Signer = ethProvider?.getSigner() as Signer;
 
-  const params = {
-    tokenIn: CurrentConfig.tokens.in.address,
-    tokenOut: CurrentConfig.tokens.out.address,
-    fee: CurrentConfig.tokens.poolFee,
-    recipient: walletAddress,
-    deadline: Math.floor(Date.now() / 1000) + 60 * 10,
-    amountIn: CurrentConfig.tokens.amountIn,
-    amountOutMinimum: ethers.utils.parseUnits('1', 'ether').toString(),
-    sqrtPriceLimitX96: 0,
-  };
-  console.log(JSON.stringify(params), params);
-  console.log(swapRouterContract.connect(signer));
-  const swapRouterContractWithSigner = swapRouterContract.connect(signer);
+    signer
+      ?.getAddress()
+      .then((walletAddress: string) => {
+        // to satisfy the Linter gods which i dont want to reconfigure rn
+        if (!ethProvider) {
+          reject(new Error('Provider undefined'));
+        }
+        // initialize the UniswapRouter Contract directly
+        const swapRouterContract = new ethers.Contract(
+          SWAP_ROUTER_ADDRESS,
+          SwapRouterABI,
+          ethProvider as ethers.providers.Provider
+        );
+        // set up the transaction params based on the Trading Config
+        const params = {
+          tokenIn: CurrentConfig.tokens.in.address,
+          tokenOut: CurrentConfig.tokens.out.address,
+          fee: CurrentConfig.tokens.poolFee,
+          recipient: walletAddress,
+          deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+          amountIn: CurrentConfig.tokens.amountIn,
+          amountOutMinimum: 0,
+          sqrtPriceLimitX96: 0,
+        };
+        // connect the Router contract to the signer
+        const swapRouterContractWithSigner = swapRouterContract.connect(signer);
 
-  if (
-    !swapRouterContractWithSigner ||
-    !swapRouterContractWithSigner.callStatic ||
-    !swapRouterContractWithSigner.callStatic.exactInputSingle
-  ) {
-    throw new Error('Cannot execute a trade without a connected wallet');
-  }
-
-  swapRouterContractWithSigner?.callStatic
-    ?.exactInputSingle(params, {
-      maxFeePerGas: MAX_FEE_PER_GAS,
-      maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
-    })
-    .then((transaction) => {
-      console.log(transaction);
-    })
-    .catch((err) => {
-      console.log(params, MAX_PRIORITY_FEE_PER_GAS, MAX_FEE_PER_GAS);
-      console.log(err);
-    });
+        // handle typescript linter issues by doing null checks
+        if (
+          !swapRouterContractWithSigner ||
+          !swapRouterContractWithSigner.exactInputSingle
+        ) {
+          reject(new Error('swapRouterContractWithSigner undefined'));
+        }
+        // when converting from eth to tokens you send Eth in using the Value field.
+        let EthValue = '0';
+        if (CurrentConfig.fromEth) {
+          EthValue = CurrentConfig.tokens.amountIn;
+        }
+        swapRouterContractWithSigner
+          ?.exactInputSingle(params, {
+            value: EthValue,
+            from: walletAddress,
+          })
+          .then((transaction: ethers.providers.TransactionResponse) => {
+            resolve(transaction);
+          })
+          .catch((err: Error) => {
+            console.log('Error params: ', CurrentConfig, params);
+            reject(err);
+          });
+      })
+      .catch((err: Error) => {
+        // rejection due to the rare event of the wallet not being initialized
+        reject(err);
+      });
+  });
 }

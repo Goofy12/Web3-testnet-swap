@@ -172,21 +172,43 @@ const Index = () => {
         getTokenTransferApproval(address);
         return;
       }
-      const amountInt = ethers.utils.parseUnits(tokenInput.toString(), 'ether');
       if (!Native || !NightTestToken) return;
       const TradeConfig: TradingConfig = {
+        // 0.00111
         tokens: {
           in: Native,
           out: NightTestToken,
-          amountIn: amountInt.toString(), // not safe operation since Number can overflow easily...
+          amountIn: ethers.utils
+            .parseUnits(nativeInput.toString(), 'ether')
+            .toString(), // convert value to a string before and after to avoid errors from value conversion
           poolFee: FeeAmount.HIGH,
         },
         slippage: '500',
+        fromEth,
       };
+      if (!fromEth) {
+        TradeConfig.tokens = {
+          in: NightTestToken,
+          out: Native,
+          amountIn: ethers.utils
+            .parseUnits(tokenInput.toString(), 'ether')
+            .toString(), // convert value to a string before and after to avoid errors from value conversion
+          poolFee: FeeAmount.HIGH,
+        };
+      }
+
       try {
-        executeDirtySwap(TradeConfig).then((res) => {
-          console.log(res);
-        });
+        executeDirtySwap(TradeConfig).then(
+          async (tx: ethers.providers.TransactionResponse) => {
+            console.log(tx, typeof tx);
+
+            tx.wait().then((receipt: ethers.providers.TransactionReceipt) => {
+              console.log(
+                `Transaction confirmed in block ${receipt.blockNumber}`
+              );
+            });
+          }
+        );
       } catch (err) {
         console.log('error making trade', err);
       }
